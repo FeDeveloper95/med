@@ -1,0 +1,22 @@
+{
+    "name": "MedTracker",
+    "short_name": "MedTracker",
+    "description": "Un'app semplice per tracciare l'assunzione di medicine.",
+    "start_url": "index.html",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#F8F9FC",
+    "theme_color": "#0B57D0",
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}

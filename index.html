@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <title>Med</title> 
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="MedTracker">
+    
+    <meta name="theme-color" content="#F8F9FC" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1A1C1E" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <header class="app-header">
+            <h3>Med</h3> 
+            
+            <div id="calendar-bar" class="calendar-bar">
+                </div>
+        </header>
+        
+        <main id="medication-list" class="medication-list">
+            <p id="empty-state" class="empty-state">Nessuna medicina aggiunta. Premi '+' per iniziare.</p>
+        </main>
+        
+        <button id="add-med-fab" class="fab" aria-label="Aggiungi medicina">
+            <span class="material-icons-outlined">add</span>
+        </button>
+
+    </div>
+
+    <div id="add-med-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Nuova Medicina</h2>
+            <div class="form-group">
+                <label for="med-name-input">Nome</label>
+                <input type="text" id="med-name-input" placeholder="Es. Paracetamolo">
+            </div>
+            <div class="form-group">
+                <label for="med-time-input">Orario di assunzione</label>
+                <input type="time" id="med-time-input">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-med-button" class="btn-text">Annulla</button>
+                <button id="save-med-button" class="btn-filled">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

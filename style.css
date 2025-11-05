@@ -1,0 +1,428 @@
+/* --- 1. Impostazioni Globali e App-Feel --- */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+body {
+    user-select: none;
+    background-color: var(--background-color);
+    color: var(--on-background-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* --- 2. Variabili Colore (Palette Blu da "Music") --- */
+:root {
+    --motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
+    --motion-duration: 0.35s;
+
+    /* Modalità Chiara (Default) */
+    --primary-color: #0B57D0;
+    --on-primary-color: #FFFFFF;
+    --primary-container-color: #D8E2FF;
+    --on-primary-container-color: #001A41;
+    --background-color: #F8F9FC;
+    --on-background-color: #1A1C1E;
+    --surface-color: #F8F9FC;
+    --on-surface-color: #1A1C1E;
+    --surface-container-color: #F2F3F7;
+    --on-surface-container-color: #1A1C1E;
+    --outline-color: #74777F;
+    --secondary-text-color: #44474F;
+    --state-layer-color: #0B57D0;
+    --success-color: #28a745;
+    --error-color: #B3261E;
+}
+
+/* Modalità Scura (attivata dal dispositivo) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary-color: #A8C7FA;
+        --on-primary-color: #203148;
+        --primary-container-color: #374860;
+        --on-primary-container-color: #D8E2FF;
+        --background-color: #1A1C1E;
+        --on-background-color: #E3E2E6;
+        --surface-color: #1A1C1E; 
+        --on-surface-color: #E3E2E6;
+        --surface-container-color: #202225;
+        --on-surface-container-color: #E3E2E6;
+        --outline-color: #8E9099;
+        --secondary-text-color: #C4C6CF;
+        --state-layer-color: #A8C7FA;
+        --success-color: #28a745;
+        --error-color: #F2B8B5;
+    }
+}
+
+/* --- 3. Layout Applicazione --- */
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.app-header {
+    background-color: var(--surface-color);
+    padding: 16px 0 8px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    z-index: 10;
+    overflow: hidden;
+}
+
+.app-header h3 {
+    text-align: center;
+    color: var(--on-surface-color);
+    font-weight: 500;
+    margin-bottom: 12px;
+    padding: 0 16px;
+}
+
+.medication-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.empty-state {
+    text-align: center;
+    margin-top: 40px;
+    color: var(--secondary-text-color);
+    font-size: 1.1em;
+}
+
+/* --- 4. Barra Calendario --- */
+
+.calendar-bar {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+    padding-left: 16px;
+    padding-right: 16px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.calendar-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.calendar-day {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 20px;
+    min-width: 50px;
+    height: 60px;
+    margin-right: 8px;
+    
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.2s, border-radius 0.2s ease-out;
+}
+
+.calendar-day:active {
+    border-radius: 12px;
+}
+
+.calendar-day .day-name {
+    font-size: 0.8em;
+    font-weight: 500;
+    color: var(--secondary-text-color);
+}
+.calendar-day .day-number {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--on-surface-color);
+    margin-top: 4px;
+}
+.calendar-day.today .day-number {
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.calendar-day.selected {
+    background-color: var(--primary-container-color);
+}
+.calendar-day.selected .day-name,
+.calendar-day.selected .day-number {
+    color: var(--on-primary-container-color);
+}
+.calendar-day.selected.today .day-number {
+    border-color: var(--on-primary-container-color);
+    background-color: var(--primary-color);
+    color: var(--on-primary-color);
+}
+
+
+/* --- 5. Card Medicina --- */
+
+.med-card {
+    background-color: var(--surface-container-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: opacity 0.3s;
+}
+.med-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.med-name {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--on-surface-container-color);
+}
+.med-time {
+    font-size: 1em;
+    color: var(--secondary-text-color);
+}
+.med-card.taken {
+    opacity: 0.6;
+}
+.med-card.taken .med-info {
+    text-decoration: line-through;
+}
+.med-card.taken .take-button {
+    background-color: var(--success-color);
+    color: white;
+}
+.card-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.take-action {
+    color: var(--secondary-text-color);
+    font-size: 0.9em;
+}
+
+.take-button, .delete-button {
+    border: none;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.2s, border-radius 0.2s ease-out;
+}
+
+.take-button:active {
+    border-radius: 8px;
+}
+
+.take-button {
+    padding: 10px 16px;
+    background-color: var(--primary-color);
+    color: var(--on-primary-color);
+}
+
+.delete-button {
+    background-color: transparent;
+    color: var(--error-color);
+    padding: 10px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+}
+.delete-button .material-icons-outlined {
+    font-size: 24px;
+}
+
+
+/* --- 6. Pulsante Fluttuante (FAB) (CORRETTO) --- */
+
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    background-color: var(--primary-container-color);
+    color: var(--on-primary-container-color);
+    border: none;
+    border-radius: 16px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    z-index: 100;
+    
+    /* MODIFICA: La riga 'position: relative;' è stata rimossa da qui */
+    overflow: hidden;
+    transition: border-radius 0.2s ease-out;
+}
+
+.fab:active {
+    border-radius: 8px;
+    transition: border-radius 0.1s ease-out;
+}
+
+/* --- 7. Modale Aggiunta Medicina --- */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--motion-duration) var(--motion-easing), visibility var(--motion-duration) var(--motion-easing);
+}
+.modal-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+.modal-content {
+    background-color: var(--surface-color);
+    padding: 24px;
+    border-radius: 28px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+    transition: transform var(--motion-duration) var(--motion-easing), opacity var(--motion-duration) var(--motion-easing);
+}
+.modal-overlay.visible .modal-content {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+.modal-content h2 {
+    color: var(--on-surface-color);
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+.form-group {
+    margin-bottom: 16px;
+}
+.form-group label {
+    display: block;
+    font-size: 0.9em;
+    color: var(--secondary-text-color);
+    margin-bottom: 8px;
+}
+.form-group input[type="text"],
+.form-group input[type="time"] {
+    width: 100%;
+    padding: 12px;
+    height: 48px;
+    border: 1px solid var(--outline-color);
+    border-radius: 8px;
+    font-size: 1.1em;
+    background-color: transparent;
+    color: var(--on-surface-color);
+}
+.form-group input[type="time"] {
+    line-height: 1.5;
+}
+.form-group input[type="text"]:focus,
+.form-group input[type="time"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    border-width: 2px;
+    padding: 11px;
+}
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+}
+.btn-text, .btn-filled {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.2s, border-radius 0.2s ease-out;
+}
+
+.btn-text:active, .btn-filled:active {
+    border-radius: 8px;
+}
+
+.btn-text {
+    background-color: transparent;
+    color: var(--primary-color);
+}
+.btn-filled {
+    background-color: var(--primary-color);
+    color: var(--on-primary-color);
+}
+
+/* --- 8. Animazione "State Layer" (Ripple) da "Music" --- */
+
+.fab::before,
+.calendar-day::before,
+.take-button::before,
+.delete-button::before,
+.btn-text::before,
+.btn-filled::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background-color: var(--state-layer-color);
+    opacity: 0;
+    transform: scale(0);
+    transition: transform 0.3s, opacity 0.3s;
+}
+.fab:hover::before,
+.calendar-day:hover::before,
+.take-button:hover::before,
+.delete-button:hover::before,
+.btn-text:hover::before,
+.btn-filled:hover::before {
+    transform: scale(1);
+    opacity: 0.08;
+}
+.fab:active::before,
+.calendar-day:active::before,
+.take-button:active::before,
+.delete-button:active::before,
+.btn-text:active::before,
+.btn-filled:active::before {
+    transform: scale(1);
+    opacity: 0.12;
+}
