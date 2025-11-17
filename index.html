@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,11 +32,24 @@
         </header>
         
         <main id="medication-list" class="medication-list">
-            <p id="empty-state" class="empty-state">Nessuna medicina aggiunta. Premi '+' per iniziare.</p>
+            <p id="empty-state" class="empty-state">Nessuna attività per oggi.</p>
         </main>
         
-        <button id="add-med-fab" class="fab" aria-label="Aggiungi medicina">
-            <span class="material-icons-outlined">add</span>
+        <div id="fab-menu-overlay" class="fab-menu-overlay"></div>
+
+        <div id="fab-menu" class="fab-menu">
+            <button id="menu-btn-medicina" class="menu-item">
+                <span class="material-icons-outlined">medication</span>
+                <span>Medicina</span>
+            </button>
+            <button id="menu-btn-evento" class="menu-item">
+                <span class="material-icons-outlined">event</span>
+                <span>Evento</span>
+            </button>
+        </div>
+
+        <button id="add-med-fab" class="fab" aria-label="Apri menu">
+            <span class="material-icons-outlined" id="fab-icon">add</span>
         </button>
 
     </div>
@@ -47,12 +62,30 @@
                 <input type="text" id="med-name-input" placeholder="Es. Paracetamolo">
             </div>
             <div class="form-group">
-                <label for="med-time-input">Orario di assunzione</label>
+                <label for="med-time-input">Orario di assunzione (giornaliero)</label>
                 <input type="time" id="med-time-input">
             </div>
             <div class="modal-actions">
                 <button id="cancel-med-button" class="btn-text">Annulla</button>
                 <button id="save-med-button" class="btn-filled">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-event-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Nuovo Evento</h2>
+            <div class="form-group">
+                <label for="event-name-input">Nome Evento</label>
+                <input type="text" id="event-name-input" placeholder="Es. Visita medica">
+            </div>
+            <div class="form-group">
+                <label for="event-time-input">Orario</label>
+                <input type="time" id="event-time-input">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-event-button" class="btn-text">Annulla</button>
+                <button id="save-event-button" class="btn-filled">Salva</button>
             </div>
         </div>
     </div>

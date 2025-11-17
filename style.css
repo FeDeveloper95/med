@@ -32,11 +32,14 @@ body {
     --on-primary-color: #FFFFFF;
     --primary-container-color: #D8E2FF;
     --on-primary-container-color: #001A41;
+    --secondary-container-color: #E8DEF8; /* Per gli eventi */
+    --on-secondary-container-color: #1D192B;
     --background-color: #F8F9FC;
     --on-background-color: #1A1C1E;
     --surface-color: #F8F9FC;
     --on-surface-color: #1A1C1E;
-    --surface-container-color: #F2F3F7;
+    --surface-container-color: #F2F3F7; 
+    --surface-bright: #FFFFFF; 
     --on-surface-container-color: #1A1C1E;
     --outline-color: #74777F;
     --secondary-text-color: #44474F;
@@ -45,18 +48,21 @@ body {
     --error-color: #B3261E;
 }
 
-/* Modalità Scura (attivata dal dispositivo) */
+/* Modalità Scura */
 @media (prefers-color-scheme: dark) {
     :root {
         --primary-color: #A8C7FA;
         --on-primary-color: #203148;
         --primary-container-color: #374860;
         --on-primary-container-color: #D8E2FF;
+        --secondary-container-color: #4A4458;
+        --on-secondary-container-color: #E8DEF8;
         --background-color: #1A1C1E;
         --on-background-color: #E3E2E6;
         --surface-color: #1A1C1E; 
         --on-surface-color: #E3E2E6;
-        --surface-container-color: #202225;
+        --surface-container-color: #2B2D31; 
+        --surface-bright: #2B2D31;
         --on-surface-container-color: #E3E2E6;
         --outline-color: #8E9099;
         --secondary-text-color: #C4C6CF;
@@ -72,6 +78,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    position: relative;
 }
 
 .app-header {
@@ -113,9 +120,35 @@ body {
     padding-right: 16px;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    display: flex; /* Flex per allineare divisori e giorni */
+    align-items: center;
 }
 .calendar-bar::-webkit-scrollbar {
     display: none;
+}
+
+/* Divisore Mese */
+.calendar-month-divider {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.9em;
+    height: 40px; /* Altezza ridotta per centratura visiva */
+    margin-right: 8px;
+    position: relative;
+}
+.calendar-month-divider::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background-color: var(--outline-color);
+    opacity: 0.3;
 }
 
 .calendar-day {
@@ -129,6 +162,7 @@ body {
     min-width: 50px;
     height: 60px;
     margin-right: 8px;
+    flex-shrink: 0; /* Impedisce schiacciamento */
     
     position: relative;
     overflow: hidden;
@@ -173,7 +207,7 @@ body {
 }
 
 
-/* --- 5. Card Medicina --- */
+/* --- 5. Card Elemento (Medicina o Evento) --- */
 
 .med-card {
     background-color: var(--surface-container-color);
@@ -185,21 +219,42 @@ body {
     justify-content: space-between;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     transition: opacity 0.3s;
+    position: relative;
+    overflow: hidden;
 }
+
+/* Stile specifico per gli Eventi */
+.med-card.event-card {
+    background-color: var(--surface-container-color);
+    border-left: 4px solid var(--secondary-text-color); /* Indicatore visivo */
+}
+
 .med-info {
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+.med-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 .med-name {
     font-size: 1.2em;
     font-weight: 600;
     color: var(--on-surface-container-color);
 }
+.event-icon {
+    font-size: 1.1em;
+    color: var(--secondary-text-color);
+}
+
 .med-time {
     font-size: 1em;
     color: var(--secondary-text-color);
 }
+
+/* Stati Med Presa */
 .med-card.taken {
     opacity: 0.6;
 }
@@ -210,6 +265,7 @@ body {
     background-color: var(--success-color);
     color: white;
 }
+
 .card-actions {
     display: flex;
     gap: 8px;
@@ -255,7 +311,78 @@ body {
 }
 
 
-/* --- 6. Pulsante Fluttuante (FAB) (CORRETTO) --- */
+/* --- 6. FAB e Menu FAB --- */
+
+.fab-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 98;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.fab-menu-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.fab-menu {
+    position: fixed;
+    bottom: 100px;
+    right: 30px;
+    width: 160px;
+    background-color: var(--surface-bright);
+    border-radius: 16px;
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 99;
+    
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    opacity: 0;
+    transform: scale(0.8);
+    transform-origin: bottom right;
+    visibility: hidden;
+    transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), opacity 0.2s ease, visibility 0.25s;
+}
+
+.fab-menu.visible {
+    opacity: 1;
+    transform: scale(1);
+    visibility: visible;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: transparent;
+    border: none;
+    border-radius: 12px;
+    color: var(--on-surface-container-color);
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+    background-color: var(--surface-container-color);
+}
+.menu-item .material-icons-outlined {
+    font-size: 24px;
+    color: var(--secondary-text-color);
+}
 
 .fab {
     position: fixed;
@@ -274,18 +401,23 @@ body {
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     cursor: pointer;
     z-index: 100;
-    
-    /* MODIFICA: La riga 'position: relative;' è stata rimossa da qui */
     overflow: hidden;
-    transition: border-radius 0.2s ease-out;
+    transition: border-radius 0.2s ease-out, transform 0.2s;
 }
 
 .fab:active {
     border-radius: 8px;
-    transition: border-radius 0.1s ease-out;
+    transform: scale(0.96);
 }
 
-/* --- 7. Modale Aggiunta Medicina --- */
+#fab-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fab.menu-open #fab-icon {
+    transform: rotate(135deg);
+}
+
+/* --- 7. Modali (Generico) --- */
 
 .modal-overlay {
     position: fixed;
@@ -388,14 +520,15 @@ body {
     color: var(--on-primary-color);
 }
 
-/* --- 8. Animazione "State Layer" (Ripple) da "Music" --- */
+/* --- 8. Animazione "State Layer" --- */
 
 .fab::before,
 .calendar-day::before,
 .take-button::before,
 .delete-button::before,
 .btn-text::before,
-.btn-filled::before {
+.btn-filled::before,
+.menu-item::before {
     content: '';
     position: absolute;
     top: 0;
@@ -413,7 +546,8 @@ body {
 .take-button:hover::before,
 .delete-button:hover::before,
 .btn-text:hover::before,
-.btn-filled:hover::before {
+.btn-filled:hover::before,
+.menu-item:hover::before {
     transform: scale(1);
     opacity: 0.08;
 }
@@ -422,7 +556,8 @@ body {
 .take-button:active::before,
 .delete-button:active::before,
 .btn-text:active::before,
-.btn-filled:active::before {
+.btn-filled:active::before,
+.menu-item:active::before {
     transform: scale(1);
     opacity: 0.12;
 }

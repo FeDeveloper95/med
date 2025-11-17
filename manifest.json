@@ -1,6 +1,6 @@
 {
-    "name": "MedTracker",
-    "short_name": "MedTracker",
+    "name": "Med",
+    "short_name": "Med",
     "description": "Un'app semplice per tracciare l'assunzione di medicine.",
     "start_url": "index.html",
     "display": "standalone",
