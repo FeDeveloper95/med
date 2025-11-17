@@ -1,3 +1,10 @@
+// Registrazione Service Worker per PWA
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker registrato con successo'))
+        .catch(err => console.error('Errore registrazione Service Worker:', err));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- 1. Selettori DOM ---
