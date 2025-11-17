@@ -1,7 +1,7 @@
 {
     "name": "Med",
     "short_name": "Med",
-    "description": "Un'app semplice per tracciare l'assunzione di medicine.",
+    "description": "Med.",
     "start_url": "index.html",
     "display": "standalone",
     "orientation": "portrait",
