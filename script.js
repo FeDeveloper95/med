@@ -12,14 +12,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuBtnMedicina = document.getElementById('menu-btn-medicina');
     const menuBtnEvento = document.getElementById('menu-btn-evento');
 
-    // Modale Medicina
+    // Modali
     const medModal = document.getElementById('add-med-modal');
     const medCancelBtn = document.getElementById('cancel-med-button');
     const medSaveBtn = document.getElementById('save-med-button');
     const medNameInput = document.getElementById('med-name-input');
     const medTimeInput = document.getElementById('med-time-input');
 
-    // Modale Evento
     const eventModal = document.getElementById('add-event-modal');
     const eventCancelBtn = document.getElementById('cancel-event-button');
     const eventSaveBtn = document.getElementById('save-event-button');
@@ -29,9 +28,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 2. Stato dell'Applicazione ---
     let medications = []; 
     let takenRecords = {}; 
-    let events = {}; // Struttura: { 'YYYY-MM-DD': [ { id, name, time } ] }
+    let events = {}; 
     let selectedDate = new Date(); 
     let isMenuOpen = false;
+
+    // Stato Calendario Infinito
+    let minDateOffset = -15; // Giorni caricati nel passato inizialmente
+    let maxDateOffset = 30;  // Giorni caricati nel futuro inizialmente
+    let isLoadingDays = false; // Semaforo per evitare caricamenti doppi
 
     // --- 3. Funzioni Helper ---
     const formatDateKey = (date) => {
@@ -54,83 +58,175 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
     };
 
-    // --- 4. Funzioni di Rendering (Disegno UI) ---
-    const renderCalendar = (scrollBehavior = 'auto') => {
-        calendarBar.innerHTML = ''; 
-        const todayKey = formatDateKey(new Date());
-        const selectedKey = formatDateKey(selectedDate);
-        let selectedDayElement = null; 
-        let lastMonth = -1;
+    const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
-        for (let i = -60; i <= 30; i++) {
-            const date = new Date(); 
-            date.setDate(date.getDate() + i); 
-            
-            const currentMonth = date.getMonth();
+    // --- 4. Logica Calendario Infinito ---
 
-            // Se cambia il mese (o è il primo elemento), aggiungi divisore
-            if (currentMonth !== lastMonth && lastMonth !== -1) {
-                const monthName = date.toLocaleDateString('it-IT', { month: 'long' });
-                const capitalMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-                const dividerEl = document.createElement('div');
-                dividerEl.className = 'calendar-month-divider';
-                dividerEl.textContent = capitalMonth;
-                calendarBar.appendChild(dividerEl);
-            }
-            // Gestione caso iniziale (per mostrare mese corrente all'inizio)
-            if (i === -60) {
-                lastMonth = currentMonth;
-                const monthName = date.toLocaleDateString('it-IT', { month: 'long' });
-                const capitalMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-                const dividerEl = document.createElement('div');
-                dividerEl.className = 'calendar-month-divider';
-                dividerEl.textContent = capitalMonth;
-                calendarBar.appendChild(dividerEl);
-            }
+    // Crea l'elemento HTML per un singolo giorno
+    const createDayElement = (date) => {
+        const dateKey = formatDateKey(date);
+        const dayName = date.toLocaleDateString('it-IT', { weekday: 'short' });
+        const dayNumber = date.getDate();
 
-            lastMonth = currentMonth;
-
-            const dateKey = formatDateKey(date);
-            const dayName = date.toLocaleDateString('it-IT', { weekday: 'short' });
-            const dayNumber = date.getDate();
-
-            const dayEl = document.createElement('div');
-            dayEl.className = 'calendar-day';
-            dayEl.innerHTML = `
-                <span class="day-name">${dayName}</span>
-                <span class="day-number">${dayNumber}</span>
-            `;
-
-            if (dateKey === todayKey) {
-                dayEl.classList.add('today');
-            }
-            
-            if (dateKey === selectedKey) {
-                dayEl.classList.add('selected');
-                selectedDayElement = dayEl; 
-            }
-
-            dayEl.addEventListener('click', () => {
-                selectDate(date);
-            });
-
-            calendarBar.appendChild(dayEl);
-        }
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        dayEl.dataset.date = dateKey; // Utile per ritrovarlo
         
-        if (selectedDayElement) {
-            selectedDayElement.scrollIntoView({
-                behavior: scrollBehavior, 
-                block: 'nearest',
-                inline: 'center'
-            });
+        // Aggiungi classe 'today' se necessario
+        if (dateKey === formatDateKey(new Date())) {
+            dayEl.classList.add('today');
+        }
+
+        dayEl.innerHTML = `
+            <span class="day-name">${dayName}</span>
+            <span class="day-number">${dayNumber}</span>
+        `;
+
+        dayEl.addEventListener('click', () => {
+            selectDate(date);
+        });
+
+        return dayEl;
+    };
+
+    // Crea l'elemento Divisore Mese
+    const createMonthDivider = (date) => {
+        const monthName = date.toLocaleDateString('it-IT', { month: 'long' });
+        const dividerEl = document.createElement('div');
+        dividerEl.className = 'calendar-month-divider';
+        dividerEl.textContent = capitalize(monthName);
+        return dividerEl;
+    };
+
+    // Aggiunge giorni al DOM (Past = Prepend, Future = Append)
+    const addDays = (direction, count = 30) => {
+        if (isLoadingDays) return;
+        isLoadingDays = true;
+
+        // Salviamo la larghezza attuale per correggere lo scroll se andiamo nel passato
+        const oldScrollWidth = calendarBar.scrollWidth;
+        const oldScrollLeft = calendarBar.scrollLeft;
+
+        if (direction === 'future') {
+            let currentMonth = new Date();
+            currentMonth.setDate(currentMonth.getDate() + maxDateOffset);
+            currentMonth = currentMonth.getMonth();
+
+            for (let i = 1; i <= count; i++) {
+                maxDateOffset++;
+                const date = new Date();
+                date.setDate(date.getDate() + maxDateOffset);
+                
+                // Controllo cambio mese
+                if (date.getDate() === 1) {
+                    calendarBar.appendChild(createMonthDivider(date));
+                } else if (i === 1 && maxDateOffset === -14) { 
+                    // Hack per mostrare il mese corrente all'avvio se necessario
+                    // (Non strettamente necessario se la logica scroll gestisce tutto, ma utile per sicurezza)
+                }
+
+                calendarBar.appendChild(createDayElement(date));
+            }
+        } else if (direction === 'past') {
+            for (let i = 1; i <= count; i++) {
+                minDateOffset--;
+                const date = new Date();
+                date.setDate(date.getDate() + minDateOffset);
+
+                const dayEl = createDayElement(date);
+                calendarBar.insertBefore(dayEl, calendarBar.firstChild);
+
+                // Se è il primo del mese, aggiungi il divisore PRIMA del giorno (quindi sopra/sinistra)
+                if (date.getDate() === 1) {
+                    calendarBar.insertBefore(createMonthDivider(date), dayEl);
+                }
+            }
+            
+            // Correggi lo scroll in modo che l'utente non veda saltare la lista
+            const newScrollWidth = calendarBar.scrollWidth;
+            calendarBar.scrollLeft = newScrollWidth - oldScrollWidth + oldScrollLeft;
+        }
+
+        isLoadingDays = false;
+        updateCalendarSelection(); // Aggiorna visivamente la selezione sui nuovi elementi
+    };
+
+    // Aggiorna solo le classi CSS (selected) senza rifare il DOM
+    const updateCalendarSelection = () => {
+        const selectedKey = formatDateKey(selectedDate);
+        
+        // Rimuovi selezione precedente
+        const prevSelected = calendarBar.querySelector('.calendar-day.selected');
+        if (prevSelected) prevSelected.classList.remove('selected');
+
+        // Aggiungi nuova selezione
+        const newSelected = calendarBar.querySelector(`.calendar-day[data-date="${selectedKey}"]`);
+        if (newSelected) {
+            newSelected.classList.add('selected');
+            
+            // Nota: Lo scrollIntoView lo facciamo solo al click esplicito o init, 
+            // non durante il caricamento infinito automatico.
         }
     };
 
+    // Inizializzazione Calendario
+    const initCalendar = () => {
+        calendarBar.innerHTML = '';
+        
+        // Inseriamo un divisore iniziale per il mese corrente (o quello più vecchio)
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() + minDateOffset);
+        calendarBar.appendChild(createMonthDivider(startDate));
+
+        // Carica range iniziale
+        // Simuliamo un loop manuale per il primo caricamento per evitare complessità di addDays('future') da zero
+        let lastMonth = startDate.getMonth();
+
+        for (let i = minDateOffset; i <= maxDateOffset; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() + i);
+            
+            if (date.getMonth() !== lastMonth) {
+                calendarBar.appendChild(createMonthDivider(date));
+                lastMonth = date.getMonth();
+            }
+            
+            calendarBar.appendChild(createDayElement(date));
+        }
+
+        // Scroll al giorno selezionato (oggi)
+        setTimeout(() => {
+            updateCalendarSelection();
+            const selectedEl = calendarBar.querySelector('.calendar-day.selected');
+            if (selectedEl) {
+                selectedEl.scrollIntoView({ block: 'nearest', inline: 'center' });
+            }
+        }, 0);
+    };
+
+    // Listener per Scroll Infinito
+    calendarBar.addEventListener('scroll', () => {
+        const scrollLeft = calendarBar.scrollLeft;
+        const scrollWidth = calendarBar.scrollWidth;
+        const clientWidth = calendarBar.clientWidth;
+
+        // Se siamo vicini all'inizio (sinistra) -> Carica Passato
+        if (scrollLeft < 100) {
+            addDays('past', 15);
+        }
+
+        // Se siamo vicini alla fine (destra) -> Carica Futuro
+        if (scrollLeft + clientWidth > scrollWidth - 100) {
+            addDays('future', 15);
+        }
+    });
+
+    // --- 5. Rendering Lista (Medicine/Eventi) ---
     const renderList = () => {
         medList.innerHTML = '';
         const dateKey = formatDateKey(selectedDate);
         
-        // 1. Prepara le Medicine per oggi
+        // 1. Prepara Medicine
         const takenMedsForDay = takenRecords[dateKey] || [];
         const medsForDisplay = medications.map(med => {
             const takenEntry = takenMedsForDay.find(t => t.id === med.id);
@@ -143,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
 
-        // 2. Prepara gli Eventi per oggi
+        // 2. Prepara Eventi
         const dayEvents = events[dateKey] || [];
         const eventsForDisplay = dayEvents.map(evt => {
             return {
@@ -165,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         emptyState.style.display = 'none';
         
-        // Date helper per disabilitare "Prendi" nel futuro
         const today = new Date();
         today.setHours(0, 0, 0, 0); 
         const selectedDay = new Date(selectedDate);
@@ -230,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // --- 5. Funzioni di Logica ---
+    // --- 6. Logica Interattiva ---
     
     const toggleFabMenu = (show) => {
         isMenuOpen = show;
@@ -250,7 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
             modalEl.classList.add('visible');
         } else {
             modalEl.classList.remove('visible');
-            // Reset inputs
             const inputs = modalEl.querySelectorAll('input');
             inputs.forEach(i => i.value = '');
         }
@@ -258,27 +352,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selectDate = (newDate) => {
         selectedDate = newDate;
-        renderCalendar('smooth'); 
+        updateCalendarSelection();
         renderList();
+        
+        // Scroll smooth verso il giorno selezionato
+        const dateKey = formatDateKey(newDate);
+        const el = calendarBar.querySelector(`.calendar-day[data-date="${dateKey}"]`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
     };
 
-    // Logica Medicina
+    // Azioni Dati
     const saveMedication = () => {
         const name = medNameInput.value.trim();
         const time = medTimeInput.value;
-
-        if (!name || !time) {
-            alert('Per favore, compila nome e orario.');
-            return;
-        }
-
-        const newMed = {
-            id: Date.now(),
-            name: name,
-            time: time
-        };
-
-        medications.push(newMed);
+        if (!name || !time) { alert('Inserisci nome e orario.'); return; }
+        medications.push({ id: Date.now(), name, time });
         saveData();
         renderList();
         toggleModal(medModal, false);
@@ -287,126 +377,80 @@ document.addEventListener('DOMContentLoaded', () => {
     const takeMedication = (medId) => {
         const dateKey = formatDateKey(selectedDate);
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const selectedDay = new Date(selectedDate);
-        selectedDay.setHours(0, 0, 0, 0);
-
-        if (selectedDay > today) return; // Sicurezza extra
+        today.setHours(0,0,0,0);
+        const sDate = new Date(selectedDate);
+        sDate.setHours(0,0,0,0);
+        if (sDate > today) return;
 
         if (!takenRecords[dateKey]) takenRecords[dateKey] = [];
         if (takenRecords[dateKey].some(t => t.id === medId)) return;
 
-        const takenAtTime = getFormattedTimeNow();
-
-        takenRecords[dateKey].push({
-            id: medId,
-            takenAt: takenAtTime
-        });
-
+        takenRecords[dateKey].push({ id: medId, takenAt: getFormattedTimeNow() });
         saveData();
         renderList();
     };
 
-    // Logica Evento
     const saveEvent = () => {
         const name = eventNameInput.value.trim();
-        let time = eventTimeInput.value;
+        let time = eventTimeInput.value || getFormattedTimeNow();
+        if (!name) { alert('Inserisci nome evento.'); return; }
         
-        // Se l'utente non mette l'ora, usa quella corrente
-        if (!time) {
-            time = getFormattedTimeNow();
-        }
-
-        if (!name) {
-            alert('Inserisci il nome dell\'evento.');
-            return;
-        }
-
         const dateKey = formatDateKey(selectedDate);
         if (!events[dateKey]) events[dateKey] = [];
-
-        events[dateKey].push({
-            id: Date.now(),
-            name: name,
-            time: time
-        });
-
+        events[dateKey].push({ id: Date.now(), name, time });
+        
         saveData();
         renderList();
         toggleModal(eventModal, false);
     };
 
-    // Cancellazione Generica
     const deleteItem = (id, type) => {
-        if (!confirm('Vuoi eliminare questo elemento?')) return;
-
+        if (!confirm('Eliminare elemento?')) return;
         if (type === 'med') {
-            medications = medications.filter(med => med.id !== id);
-            // Pulisci anche lo storico
+            medications = medications.filter(m => m.id !== id);
             for (const k in takenRecords) {
                 takenRecords[k] = takenRecords[k].filter(t => t.id !== id);
-                if (takenRecords[k].length === 0) delete takenRecords[k];
+                if (!takenRecords[k].length) delete takenRecords[k];
             }
-        } else if (type === 'event') {
-            const dateKey = formatDateKey(selectedDate);
-            if (events[dateKey]) {
-                events[dateKey] = events[dateKey].filter(e => e.id !== id);
-                if (events[dateKey].length === 0) delete events[dateKey];
+        } else {
+            const k = formatDateKey(selectedDate);
+            if (events[k]) {
+                events[k] = events[k].filter(e => e.id !== id);
+                if (!events[k].length) delete events[k];
             }
         }
-        
         saveData();
         renderList();
     };
 
-    // --- 6. Event Listeners ---
-    
-    // FAB
+    // --- 7. Event Listeners ---
     fab.addEventListener('click', () => toggleFabMenu(!isMenuOpen));
     fabOverlay.addEventListener('click', () => toggleFabMenu(false));
 
-    // Menu Items
-    menuBtnMedicina.addEventListener('click', () => {
-        toggleFabMenu(false);
-        toggleModal(medModal, true);
+    menuBtnMedicina.addEventListener('click', () => { toggleFabMenu(false); toggleModal(medModal, true); });
+    menuBtnEvento.addEventListener('click', () => { 
+        toggleFabMenu(false); 
+        eventTimeInput.value = getFormattedTimeNow(); 
+        toggleModal(eventModal, true); 
     });
 
-    menuBtnEvento.addEventListener('click', () => {
-        toggleFabMenu(false);
-        // Pre-fill orario evento con ora attuale per comodità
-        eventTimeInput.value = getFormattedTimeNow();
-        toggleModal(eventModal, true);
-    });
-
-    // Modale Medicina
     medCancelBtn.addEventListener('click', () => toggleModal(medModal, false));
-    medModal.addEventListener('click', (e) => { if (e.target === medModal) toggleModal(medModal, false); });
     medSaveBtn.addEventListener('click', saveMedication);
+    medModal.addEventListener('click', e => { if(e.target === medModal) toggleModal(medModal, false); });
 
-    // Modale Evento
     eventCancelBtn.addEventListener('click', () => toggleModal(eventModal, false));
-    eventModal.addEventListener('click', (e) => { if (e.target === eventModal) toggleModal(eventModal, false); });
     eventSaveBtn.addEventListener('click', saveEvent);
+    eventModal.addEventListener('click', e => { if(e.target === eventModal) toggleModal(eventModal, false); });
 
-    // Lista (Click Delegato)
     medList.addEventListener('click', (e) => {
-        const takeBtn = e.target.closest('.take-button');
-        if (takeBtn) {
-            takeMedication(Number(takeBtn.dataset.id));
-            return;
-        }
-
-        const deleteBtn = e.target.closest('.delete-button');
-        if (deleteBtn) {
-            const id = Number(deleteBtn.dataset.id);
-            const type = deleteBtn.dataset.type; // 'med' o 'event'
-            deleteItem(id, type);
-            return;
-        }
+        const take = e.target.closest('.take-button');
+        if (take) return takeMedication(Number(take.dataset.id));
+        const del = e.target.closest('.delete-button');
+        if (del) return deleteItem(Number(del.dataset.id), del.dataset.type);
     });
 
-    // --- 7. Inizializzazione ---
-    loadData(); 
-    renderCalendar('auto'); 
-    renderList(); 
+    // --- 8. Init ---
+    loadData();
+    initCalendar();
+    renderList();
 });
